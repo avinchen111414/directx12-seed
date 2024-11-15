@@ -17,6 +17,7 @@ using Microsoft::WRL::ComPtr;
 struct D3DAppInfo
 {
     glm::ivec2 windowSize;
+    std::string windowTitle;
 };
 
 class D3DApp
@@ -30,27 +31,32 @@ public:
     
 protected:
     D3DApp() {}
-    ~D3DApp() {}
+    virtual ~D3DApp() = default;
 
 protected:
     virtual void Update(const class GameTimer& gt) = 0;
     virtual void Draw(const class GameTimer& gt) = 0;
+    virtual void OnResize();
 
 protected:
-    bool InitWindow(const glm::ivec2& windowSize);
+    bool InitWindow(const glm::ivec2& windowSize, const std::string& windowTitle);
     bool InitDirect3D();
     void CreateCommandObjects();
     // TODO: Migrate the swapchain to a standalone WSI component.
     void CreateSwapChain();
     void CreateRtvAndDsvDescriptorHeaps();
+    ID3D12Resource* CurrentBackBuffer() const;
     D3D12_CPU_DESCRIPTOR_HANDLE CurrentBackBufferView() const;
     D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView() const;
-    void OnResize(); void FlushCommandQueue(); 
+    void FlushCommandQueue();
+    void CalculateFrameStats();
+    
 protected:
     // Used to keep track of the delta-time and the game time.
     GameTimer mTimer;
     
     glm::ivec2 mWindowSize;
+    std::string mWindowTitle;
     xwin::EventQueue mEventQueue;
     xwin::Window mWindow;
 
@@ -59,7 +65,7 @@ protected:
     ComPtr<ID3D12Device> mD3dDevice;
 
     ComPtr<ID3D12Fence> mFence;
-    uint64_t mCurrentFence = 0;
+    uint32_t mCurrentFence = 0;
     
     uint32_t mRtvDescriptorSize;
     uint32_t mDsvDescriptorSize;
@@ -79,8 +85,8 @@ protected:
     uint32_t mClientWidth;
     uint32_t mClientHeight;
 
-	static constexpr int SwapChainBufferCount = 2;
-    int32_t mCurrBackBuffer = 0;
+	static constexpr uint32_t SwapChainBufferCount = 2;
+    uint32_t mCurrBackBuffer = 0;
     // Storage backend resources for back buffer resource views. 
     ComPtr<ID3D12Resource> mSwapChainBuffers[SwapChainBufferCount];
     ComPtr<ID3D12Resource> mDepthStencilBuffer;
@@ -92,14 +98,5 @@ protected:
     D3D12_RECT mScissorRect;
     
     ComPtr<ID3D12DescriptorHeap> mCbvHeap;
-};
-
-class InitD3DApp : public D3DApp
-{
-public:
-    InitD3DApp() = default;
-    
-    void Update(const GameTimer& gt) override {}
-    void Draw(const GameTimer& gt) override {}
 };
 

@@ -108,7 +108,7 @@ void GameTimer::Tick()
 	mCurrTime = currTime;
 
 	// Time difference between this frame and the previous.
-	mDeltaTime = (mCurrTime - mPrevTime)*mSecondsPerCount;
+	mDeltaTime = (mCurrTime - mPrevTime) * mSecondsPerCount;
 
 	// Prepare for next frame.
 	mPrevTime = mCurrTime;

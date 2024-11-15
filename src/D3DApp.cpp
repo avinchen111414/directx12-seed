@@ -1,9 +1,11 @@
+#include <string>
 #include "D3DApp.h"
 #include "D3DUtils.h"
 #include "d3dx12.h"
 
 int32_t D3DApp::Run()
 {
+    // Initialize timer. 
     mTimer.Reset();
 
     bool bIsRunning = true;
@@ -42,6 +44,7 @@ int32_t D3DApp::Run()
         if (bShouldRender)
         {
             mTimer.Tick();
+            CalculateFrameStats();
             Update(mTimer);
             Draw(mTimer);
         }
@@ -52,7 +55,7 @@ int32_t D3DApp::Run()
 
 bool D3DApp::Initialize(const D3DAppInfo& appInfo)
 {
-    if (!InitWindow(appInfo.windowSize))
+    if (!InitWindow(appInfo.windowSize, appInfo.windowTitle))
         return false;
     
     if (!InitDirect3D())
@@ -64,18 +67,19 @@ bool D3DApp::Initialize(const D3DAppInfo& appInfo)
     return true;
 }
 
-bool D3DApp::InitWindow(const glm::ivec2& windowSize)
+bool D3DApp::InitWindow(const glm::ivec2& windowSize, const std::string& windowTitle)
 {
     xwin::WindowDesc windowDesc
     {
         .width = (uint32_t)windowSize.x,
         .height = (uint32_t)windowSize.y,
         .visible = true,
-        .title = "D3DApp",
+        .title = windowTitle.c_str(),
         .name = "MainWindow",
     };
     mWindow.create(windowDesc, mEventQueue);
     mWindowSize = windowSize;
+    mWindowTitle = windowTitle;
 
     // NOTE: getWindowSize: window size, including toolbar, frames.
     // getCurrentDisplaySize: current display monitor size.
@@ -247,6 +251,11 @@ void D3DApp::CreateRtvAndDsvDescriptorHeaps()
     
 }
 
+ID3D12Resource* D3DApp::CurrentBackBuffer() const
+{
+    return mSwapChainBuffers[mCurrBackBuffer].Get();
+}
+
 D3D12_CPU_DESCRIPTOR_HANDLE D3DApp::CurrentBackBufferView() const
 {
     return CD3DX12_CPU_DESCRIPTOR_HANDLE(mRtvHeap->GetCPUDescriptorHandleForHeapStart(), mCurrBackBuffer, mRtvDescriptorSize);
@@ -393,5 +402,34 @@ void D3DApp::FlushCommandQueue()
         WaitForSingleObject(eventHandle, INFINITE);
         CloseHandle(eventHandle);
     }
+}
+
+void D3DApp::CalculateFrameStats()
+{
+	// Code computes the average frames per second, and also the 
+	// average time it takes to render one frame.  These stats 
+	// are appended to the window caption bar.
+    
+	static int frameCnt = 0;
+	static float timeElapsed = 0.0f;
+
+	frameCnt++;
+
+	// Compute averages over one second period.
+	if( (mTimer.TotalTime() - timeElapsed) >= 1.0f )
+	{
+		const float fps = (float)frameCnt; // fps = frameCnt / 1
+		const float mspf = 1000.0f / fps;
+
+        const std::string windowText = mWindowTitle +
+            "    fps: " + std::to_string(fps) +
+            "   mspf: " + std::to_string(mspf);
+
+	    mWindow.setTitle(windowText);
+		
+		// Reset for next average.
+		frameCnt = 0;
+		timeElapsed += 1.0f;
+	}
 }
 

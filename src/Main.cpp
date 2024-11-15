@@ -1,4 +1,5 @@
 #include "D3DApp.h"
+#include "InitD3DApp.h"
 #include "D3DUtils.h"
 #include "CrossWindow/CrossWindow.h"
 #include "Renderer.h"
@@ -13,7 +14,7 @@ int D3dAppMain(int argc, const char** argv)
     {
         InitD3DApp app;
 
-        constexpr D3DAppInfo appInfo
+        const D3DAppInfo appInfo
         {
             .windowSize = glm::ivec2(800, 600),
         };
