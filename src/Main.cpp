@@ -1,5 +1,33 @@
+#include "D3DApp.h"
+#include "D3DUtils.h"
 #include "CrossWindow/CrossWindow.h"
 #include "Renderer.h"
+
+int D3dAppMain(int argc, const char** argv)
+{
+#if defined(DEBUG) | defined(_DEBUG)
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+
+    try
+    {
+        InitD3DApp app;
+
+        constexpr D3DAppInfo appInfo
+        {
+            .windowSize = glm::ivec2(800, 600),
+        };
+        if (!app.Initialize(appInfo))
+            return 1;
+        
+        return app.Run();
+    }
+    catch (DxException& e)
+    {
+        MessageBox(nullptr, e.ToString().c_str(), "HR Failed", MB_OK);
+        return 1;
+    }
+}
 
 void xmain(int argc, const char** argv)
 {
