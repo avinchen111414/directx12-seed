@@ -30,13 +30,18 @@ public:
     virtual bool Initialize(const D3DAppInfo& appInfo);
     
 protected:
-    D3DApp() {}
+    D3DApp()
+        : mMouseMoveData(0 ,0 ,0 ,0 ,0 ,0)
+        , mMouseInputData(xwin::MouseInput::MouseInputMax, xwin::ButtonState::ButtonStateMax, xwin::ModifierState())
+    {}
     virtual ~D3DApp() = default;
 
 protected:
     virtual void Update(const class GameTimer& gt) = 0;
     virtual void Draw(const class GameTimer& gt) = 0;
     virtual void OnResize();
+    virtual void OnMouseMove() {}
+    virtual void OnMouseInput() {}
 
 protected:
     bool InitWindow(const glm::ivec2& windowSize, const std::string& windowTitle);
@@ -69,7 +74,6 @@ protected:
     
     uint32_t mRtvDescriptorSize;
     uint32_t mDsvDescriptorSize;
-    uint32_t mCbvDescriptorSize;
     DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
     DXGI_FORMAT mDepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
@@ -84,6 +88,10 @@ protected:
     ComPtr<IDXGISwapChain> mSwapChain;
     uint32_t mClientWidth;
     uint32_t mClientHeight;
+    bool mbMouseMoveDataValid = false;
+    xwin::MouseMoveData mMouseMoveData;
+    bool mbMouseInputDataValid = false;
+    xwin::MouseInputData mMouseInputData;
 
 	static constexpr uint32_t SwapChainBufferCount = 2;
     uint32_t mCurrBackBuffer = 0;
@@ -96,7 +104,5 @@ protected:
 
     D3D12_VIEWPORT mScreenViewport;
     D3D12_RECT mScissorRect;
-    
-    ComPtr<ID3D12DescriptorHeap> mCbvHeap;
 };
 

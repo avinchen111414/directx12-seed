@@ -1,6 +1,7 @@
 #include "D3DUtils.h"
 #include <wrl.h>
 #include <comdef.h>
+#include <D3Dcompiler.h>
 #include <fstream>
 
 #include "d3dx12.h"
@@ -71,4 +72,69 @@ ComPtr<ID3D12Resource> D3DUtils::CreateDefaultBuffer(ID3D12Device* device, ID3D1
     // TODO: We need a resource management framework to release these intermediate resources automatically.
     
     return defaultBuffer;
+}
+
+static std::string WString2String(const std::wstring& ws)
+{
+    const wchar_t* wchSrc = ws.c_str();
+    size_t nDestSize = wcstombs(nullptr, wchSrc, 0) + 1;
+    char* chDest = new char [nDestSize];
+    memset(chDest, 0, nDestSize);
+    wcstombs(chDest, wchSrc, nDestSize);
+    std::string strResult = chDest;
+    delete [] chDest;
+    return strResult;
+}
+
+static std::wstring String2WString(const std::string& s)
+{
+    const char* chSrc = s.c_str();
+    size_t nDestSize = mbstowcs(nullptr, chSrc, 0) + 1;
+    wchar_t* wchDest = new wchar_t [nDestSize];
+    memset(wchDest, 0, nDestSize);
+    mbstowcs(wchDest, chSrc, nDestSize);
+    std::wstring wstrResult = wchDest;
+    delete [] wchDest;
+    return wstrResult;
+}
+
+ComPtr<ID3DBlob> D3DUtils::LoadBinary(const std::string& filename)
+{
+    std::ifstream fin(filename, std::ios::binary);
+
+    fin.seekg(0, std::ios_base::end);
+    std::ifstream::pos_type size = (int32_t)fin.tellg();
+    fin.seekg(0, std::ios_base::beg);
+
+    ComPtr<ID3DBlob> blob;
+    ThrowIfHRFailed(D3DCreateBlob(size, blob.GetAddressOf()));
+
+    fin.read((char*)blob->GetBufferPointer(), size);
+    fin.close();
+
+    return blob;
+}
+
+ComPtr<ID3DBlob> D3DUtils::CompileShader(const std::string& filename, const D3D_SHADER_MACRO* defines,
+                                         const std::string& entryPoint, const std::string& target)
+{
+    uint32_t compileFlags = 0;
+#if defined(DEBUG) || defined(_DEBUG)
+    compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
+
+    HRESULT hr = S_OK;
+
+    ComPtr<ID3DBlob> byteCode = nullptr;
+    ComPtr<ID3DBlob> errors = nullptr;
+
+    hr = D3DCompileFromFile(String2WString(filename).c_str(), defines, D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint.c_str(),
+        target.c_str(), compileFlags, 0, &byteCode, &errors);
+
+    if (errors != nullptr)
+        OutputDebugString((char*)errors->GetBufferPointer());
+
+    ThrowIfHRFailed(hr);
+
+    return byteCode;
 }

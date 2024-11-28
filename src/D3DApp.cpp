@@ -11,6 +11,8 @@ int32_t D3DApp::Run()
     bool bIsRunning = true;
     while (bIsRunning)
     {
+        mbMouseMoveDataValid = mbMouseInputDataValid = false;
+        
         bool bShouldRender = true;
 
         // Update window event queue.
@@ -36,7 +38,18 @@ int32_t D3DApp::Run()
                 bShouldRender = false;
                 bIsRunning = false;
             }
-
+            else if (event.type == xwin::EventType::MouseMove)
+            {
+                mbMouseMoveDataValid = true;
+                mMouseMoveData = event.data.mouseMove;
+                OnMouseMove();
+            }
+            else if (event.type == xwin::EventType::MouseInput)
+            {
+                mbMouseInputDataValid = true;
+                mMouseInputData = event.data.mouseInput;
+                OnMouseInput();
+            }
             mEventQueue.pop();
         }
 
@@ -144,7 +157,6 @@ bool D3DApp::InitDirect3D()
     // Cache three kinda descriptor element size.
     mRtvDescriptorSize = mD3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
     mDsvDescriptorSize = mD3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-    mCbvDescriptorSize = mD3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     // Check 4X MSAA quality support for our back buffer format.
     // All Direct3D 11 capable devices support 4X MSAA for all render 
