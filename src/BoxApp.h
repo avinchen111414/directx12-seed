@@ -30,8 +30,9 @@ public:
 
 private:
     void OnResize() override;
-    void OnMouseMove() override;
+    void OnMouseMove(const xwin::MouseMoveData& mouseMoveData) override;
     void OnMouseInput() override;
+    void OnMouseRaw() override;
     
     void UpdateCamera();
     void Update(const GameTimer& gt) override;
@@ -48,15 +49,17 @@ private:
 private:
     ComPtr<ID3D12RootSignature> mRootSignature = nullptr;
     ComPtr<ID3D12DescriptorHeap> mCbvHeap = nullptr;
+    
     std::unique_ptr<UploadBuffer<ObjectConstants>> mObjectCB = nullptr;
+    
+    std::unique_ptr<MeshGeometry> mBoxGeo = nullptr;
 
     ComPtr<ID3DBlob> mvsByteCode = nullptr;
     ComPtr<ID3DBlob> mpsByteCode = nullptr;
+    
     std::vector<D3D12_INPUT_ELEMENT_DESC> mInputLayout;
 
     ComPtr<ID3D12PipelineState> mPSO = nullptr;
-
-    std::unique_ptr<MeshGeometry> mBoxGeo = nullptr;
 
     XMFLOAT4X4 mWorld = MathHelper::Identity4x4();
     XMFLOAT4X4 mView = MathHelper::Identity4x4();

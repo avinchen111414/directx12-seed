@@ -39,7 +39,10 @@ ComPtr<ID3D12Resource> D3DUtils::CreateDefaultBuffer(ID3D12Device* device, ID3D1
     // In order to copy CPU memory data into default buffer, we need to create an intermediate upload heap.
     static CD3DX12_HEAP_PROPERTIES uploadHeapProps(D3D12_HEAP_TYPE_UPLOAD);
     CD3DX12_RESOURCE_DESC uploadDesc = CD3DX12_RESOURCE_DESC::Buffer(byteSize);
-    ThrowIfHRFailed(device->CreateCommittedResource(&uploadHeapProps, D3D12_HEAP_FLAG_NONE, &uploadDesc, D3D12_RESOURCE_STATE_COMMON,
+    // Specs: D3D12_RESOURCE_STATE_GENERIC_READ is the required starting state for an upload heap. But application should generally avoid transitioning
+    // to this state when possible, since that can result in premature cache flushes, or resource layout changes (for example, compress/decompress), causing
+    // unnecessary pipeline stalls.
+    ThrowIfHRFailed(device->CreateCommittedResource(&uploadHeapProps, D3D12_HEAP_FLAG_NONE, &uploadDesc, D3D12_RESOURCE_STATE_GENERIC_READ,
         nullptr, IID_PPV_ARGS(uploadBuffer.GetAddressOf())));
 
     // Describe the data we want to copy from upload heap to default heap.
@@ -54,7 +57,6 @@ ComPtr<ID3D12Resource> D3DUtils::CreateDefaultBuffer(ID3D12Device* device, ID3D1
     CD3DX12_RESOURCE_BARRIER barriersBeforeCopy [] =
     {
         CD3DX12_RESOURCE_BARRIER::Transition(defaultBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST),
-        CD3DX12_RESOURCE_BARRIER::Transition(uploadBuffer.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_SOURCE),
     };
     cmdList->ResourceBarrier(_countof(barriersBeforeCopy), barriersBeforeCopy);
 

@@ -1,3 +1,4 @@
+#include "BoxApp.h"
 #include "D3DApp.h"
 #include "InitD3DApp.h"
 #include "D3DUtils.h"
@@ -12,7 +13,8 @@ int D3dAppMain(int argc, const char** argv)
 
     try
     {
-        InitD3DApp app;
+        //InitD3DApp app;
+        BoxApp app;
 
         const D3DAppInfo appInfo
         {

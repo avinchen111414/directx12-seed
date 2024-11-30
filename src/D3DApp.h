@@ -7,6 +7,7 @@ using Microsoft::WRL::ComPtr;
 
 #include "CrossWindow/CrossWindow.h"
 #include "CrossWindow/Graphics.h"
+#include "Common.h"
 
 #include "GameTimer.h"
 
@@ -20,6 +21,14 @@ struct D3DAppInfo
     std::string windowTitle;
 };
 
+enum class MouseBtnState : uint32_t
+{
+    NONE    = 0x00000000,
+    LBUTTON = 0x00000001,
+    RBUTTON = 0x00000002,
+};
+ENUM_CLASS_FLAGS(MouseBtnState);
+
 class D3DApp
 {
 public:
@@ -29,19 +38,19 @@ public:
     int32_t Run();
     virtual bool Initialize(const D3DAppInfo& appInfo);
     
+	float AspectRatio() const;
+    
 protected:
-    D3DApp()
-        : mMouseMoveData(0 ,0 ,0 ,0 ,0 ,0)
-        , mMouseInputData(xwin::MouseInput::MouseInputMax, xwin::ButtonState::ButtonStateMax, xwin::ModifierState())
-    {}
+    D3DApp() {}
     virtual ~D3DApp() = default;
 
 protected:
     virtual void Update(const class GameTimer& gt) = 0;
     virtual void Draw(const class GameTimer& gt) = 0;
     virtual void OnResize();
-    virtual void OnMouseMove() {}
+    virtual void OnMouseMove(const xwin::MouseMoveData& mouseMoveData) {}
     virtual void OnMouseInput() {}
+    virtual void OnMouseRaw() {}
 
 protected:
     bool InitWindow(const glm::ivec2& windowSize, const std::string& windowTitle);
@@ -88,10 +97,7 @@ protected:
     ComPtr<IDXGISwapChain> mSwapChain;
     uint32_t mClientWidth;
     uint32_t mClientHeight;
-    bool mbMouseMoveDataValid = false;
-    xwin::MouseMoveData mMouseMoveData;
-    bool mbMouseInputDataValid = false;
-    xwin::MouseInputData mMouseInputData;
+    MouseBtnState mMouseBtnState = MouseBtnState::NONE;
 
 	static constexpr uint32_t SwapChainBufferCount = 2;
     uint32_t mCurrBackBuffer = 0;

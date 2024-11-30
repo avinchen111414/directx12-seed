@@ -12,16 +12,13 @@ public:
     UploadBuffer(ID3D12Device* device, uint32_t elementCount, bool bIsConstantBuffer)
         : mbIsConstantBuffer(bIsConstantBuffer)
     {
-        mElementByteSize = sizeof(T);
-
         // Constant buffer elements need to be multiples of 256 bytes.
         // This is because the hardware can only view constant data at m*256 byte offset and of n*256 byte lengths.
         // typedef struct D3D12_CONSTANT_BUFFER_VIEW_DESC {
         // UINT64 OffsetInBytes; // multiple of 256
         // UINT SizeInBytes; // multiple of 256
         // } D3D12_CONSTANT_BUFFER_VIEW_DESC;
-        if (mbIsConstantBuffer)
-            mElementByteSize = D3DUtils::CalcConstantBufferByteSize(sizeof(T));
+        mElementByteSize = mbIsConstantBuffer ? D3DUtils::CalcConstantBufferByteSize(sizeof(T)) : sizeof(T);
 
         const CD3DX12_HEAP_PROPERTIES uploadHeapProps(D3D12_HEAP_TYPE_UPLOAD);
         const CD3DX12_RESOURCE_DESC& bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(mElementByteSize * elementCount);

@@ -1,5 +1,8 @@
 #include <string>
 #include "D3DApp.h"
+
+#include <iostream>
+
 #include "D3DUtils.h"
 #include "d3dx12.h"
 
@@ -17,6 +20,11 @@ int32_t D3DApp::Run()
 
         // Update window event queue.
         mEventQueue.update();
+
+        if (mEventQueue.size() > 2)
+        {
+            bool Break = true;
+        }
 
         // Iterate through that queue.
         while (!mEventQueue.empty())
@@ -40,19 +48,29 @@ int32_t D3DApp::Run()
             }
             else if (event.type == xwin::EventType::MouseMove)
             {
-                mbMouseMoveDataValid = true;
-                mMouseMoveData = event.data.mouseMove;
-                OnMouseMove();
+                OnMouseMove(event.data.mouseMove);
             }
             else if (event.type == xwin::EventType::MouseInput)
             {
-                mbMouseInputDataValid = true;
-                mMouseInputData = event.data.mouseInput;
+                if (event.data.mouseInput.state == xwin::ButtonState::Pressed)
+                {
+                    if (event.data.mouseInput.button == xwin::Left)
+                        mMouseBtnState |= MouseBtnState::LBUTTON;
+                    if (event.data.mouseInput.button == xwin::Right)
+                        mMouseBtnState |= MouseBtnState::RBUTTON;
+                }
+                else if (event.data.mouseInput.state == xwin::ButtonState::Released)
+                {
+                    if (event.data.mouseInput.button == xwin::Left)
+                        mMouseBtnState &= ~MouseBtnState::LBUTTON;
+                    if (event.data.mouseInput.button == xwin::Right)
+                        mMouseBtnState &= ~MouseBtnState::RBUTTON;
+                }
                 OnMouseInput();
             }
             mEventQueue.pop();
         }
-
+        
         // Update visuals.
         if (bShouldRender)
         {
@@ -78,6 +96,11 @@ bool D3DApp::Initialize(const D3DAppInfo& appInfo)
     OnResize();
     
     return true;
+}
+
+float D3DApp::AspectRatio() const
+{
+    return static_cast<float>(mClientWidth) / static_cast<float>(mClientHeight);
 }
 
 bool D3DApp::InitWindow(const glm::ivec2& windowSize, const std::string& windowTitle)
@@ -270,7 +293,7 @@ ID3D12Resource* D3DApp::CurrentBackBuffer() const
 
 D3D12_CPU_DESCRIPTOR_HANDLE D3DApp::CurrentBackBufferView() const
 {
-    return CD3DX12_CPU_DESCRIPTOR_HANDLE(mRtvHeap->GetCPUDescriptorHandleForHeapStart(), mCurrBackBuffer, mRtvDescriptorSize);
+    return CD3DX12_CPU_DESCRIPTOR_HANDLE(mRtvHeap->GetCPUDescriptorHandleForHeapStart(), static_cast<int32_t>(mCurrBackBuffer), mRtvDescriptorSize);
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE D3DApp::DepthStencilView() const

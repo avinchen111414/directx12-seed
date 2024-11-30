@@ -34,13 +34,32 @@ bool BoxApp::Initialize(const D3DAppInfo& appInfo)
 void BoxApp::OnResize()
 {
     D3DApp::OnResize();
+
+    // The window resized, so update the aspect ratio rend recompute the projection matrix.
+    const XMMATRIX projMat = XMMatrixPerspectiveFovLH(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
+    XMStoreFloat4x4(&mProj, projMat);
 }
 
-void BoxApp::OnMouseMove()
+void BoxApp::OnMouseMove(const xwin::MouseMoveData& mouseMoveData)
 {
 }
 
 void BoxApp::OnMouseInput()
+{
+    D3DApp::OnMouseInput();
+
+    if (EnumHasAnyFlags(mMouseBtnState, MouseBtnState::LBUTTON))
+    {
+        
+    }
+
+    if (EnumHasAnyFlags(mMouseBtnState, MouseBtnState::RBUTTON))
+    {
+        
+    }
+}
+
+void BoxApp::OnMouseRaw()
 {
 }
 
@@ -50,9 +69,12 @@ void BoxApp::UpdateCamera()
     {
         if (mMouseInputData.state == xwin::ButtonState::Pressed && mMouseInputData.button == xwin::MouseInput::Left)
         {
+            const int mouseDeltaX = mMouseMoveData.deltax;
+            const int mouseDeltaY = mMouseMoveData.deltay;
+            
             // Make each pixel corresponding to a quarter of a degree. 
-            float dx = XMConvertToRadians(0.25f * static_cast<float>(mMouseMoveData.deltax));
-            float dy = XMConvertToRadians(0.25f * static_cast<float>(mMouseMoveData.deltay));
+            float dx = XMConvertToRadians(0.25f * static_cast<float>(mouseDeltaX));
+            float dy = XMConvertToRadians(0.25f * static_cast<float>(mouseDeltaY));
 
             // Update angles based on input to orbit camera around box.
             mTheta += dx;
@@ -64,9 +86,12 @@ void BoxApp::UpdateCamera()
 
         if (mMouseInputData.state == xwin::ButtonState::Pressed && mMouseInputData.button == xwin::MouseInput::Right)
         {
+            const int mouseDeltaX = mMouseMoveData.deltax;
+            const int mouseDeltaY = mMouseMoveData.deltay;
+            
             // Make each pixel corresponding to 0.005 unit in the scene.
-            float dx = 0.0005f * static_cast<float>(mMouseMoveData.deltax);
-            float dy = 0.0005f * static_cast<float>(mMouseMoveData.deltay);
+            float dx = 0.0005f * static_cast<float>(mouseDeltaX);
+            float dy = 0.0005f * static_cast<float>(mouseDeltaY);
 
             // Update the camera radius based on input.
             mRadius += dx - dy;
@@ -107,6 +132,71 @@ void BoxApp::Update(const GameTimer& gt)
 
 void BoxApp::Draw(const GameTimer& gt)
 {
+    // Reuse the memory associated with command recording.
+    // We can only reset when the associated command lists have finished execution on the GPU.
+    ThrowIfHRFailed(mDirectCmdListAlloc->Reset());
+
+	// A command list can be reset after it has been added to the command queue via ExecuteCommandList.
+    // Reusing the command list reuses memory.
+    mCommandList->Reset(mDirectCmdListAlloc.Get(), mPSO.Get());
+
+    mCommandList->RSSetViewports(1, &mScreenViewport);
+    mCommandList->RSSetScissorRects(1, &mScissorRect);
+
+    // Indicate a state transition on the resource usage.
+    CD3DX12_RESOURCE_BARRIER BackBufferTransition [] =
+        {
+            CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET)
+        };
+    mCommandList->ResourceBarrier(_countof(BackBufferTransition), BackBufferTransition);
+
+    // Clear the back buffer and depth buffer.
+    mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::LightSteelBlue, 0, nullptr);
+    mCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+
+    // Specify the buffers we are going to render to.
+    const D3D12_CPU_DESCRIPTOR_HANDLE currentBackBufferView = CurrentBackBufferView();
+    const D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView = DepthStencilView();
+    mCommandList->OMSetRenderTargets(1, &currentBackBufferView, true, &depthStencilView);
+
+    ID3D12DescriptorHeap* descriptorHeaps[] = { mCbvHeap.Get() };
+    mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+    mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
+
+    const D3D12_VERTEX_BUFFER_VIEW& boxGeoVB = mBoxGeo->VertexBufferView(); 
+    mCommandList->IASetVertexBuffers(0, 1, &boxGeoVB);
+    const D3D12_INDEX_BUFFER_VIEW& boxGeoIB = mBoxGeo->IndexBufferView();
+    mCommandList->IASetIndexBuffer(&boxGeoIB);
+    mCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    const D3D12_GPU_DESCRIPTOR_HANDLE boxGeoCbv = mCbvHeap->GetGPUDescriptorHandleForHeapStart();
+    mCommandList->SetGraphicsRootDescriptorTable(0, boxGeoCbv);
+
+    mCommandList->DrawIndexedInstanced(mBoxGeo->DrawArgs["box"].IndexCount, 1, 0, 0, 0);
+
+    // Indicate a state transition on the resource usage.
+    CD3DX12_RESOURCE_BARRIER transitionRenderTargetToPresent [] =
+        {
+            CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT)
+        };
+    mCommandList->ResourceBarrier(_countof(transitionRenderTargetToPresent), transitionRenderTargetToPresent);
+
+    // Done recording commands.
+    ThrowIfHRFailed(mCommandList->Close());
+
+    // Add the command list the queue for execution.
+    ID3D12CommandList* cmdsLists [] = { mCommandList.Get() };
+    mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+    // swap the back and front buffers.
+    ThrowIfHRFailed(mSwapChain->Present(0, 0));
+    mCurrBackBuffer = (mCurrBackBuffer + 1) % SwapChainBufferCount;
+
+    // Wait until fence commands are complete.
+    // This waiting is inefficient and is done for simplicity.
+    // Later we will show how to organize our rendering code so we do not have to wait per frame.
+    FlushCommandQueue();
 }
 
 void BoxApp::BuildShaders()
@@ -151,6 +241,7 @@ void BoxApp::BuildPSO()
             .pInputElementDescs = mInputLayout.data(),
             .NumElements = static_cast<uint32_t>(mInputLayout.size()),
         };
+    psoDesc.pRootSignature = mRootSignature.Get();
     psoDesc.VS =
         {
             .pShaderBytecode = mvsByteCode->GetBufferPointer(),
@@ -250,8 +341,8 @@ void BoxApp::BuildDescriptorHeaps()
 {
     D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc
     {
-        .NumDescriptors = 1,
         .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+        .NumDescriptors = 1,
         .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
         .NodeMask = 0
     };
@@ -277,7 +368,6 @@ void BoxApp::BuildConstantBuffers()
     };
 
     mD3dDevice->CreateConstantBufferView(&cbvDesc, mCbvHeap->GetCPUDescriptorHandleForHeapStart());
-    
 }
 
 void BoxApp::BuildRootSignature()
