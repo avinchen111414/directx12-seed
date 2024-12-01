@@ -14,17 +14,10 @@ int32_t D3DApp::Run()
     bool bIsRunning = true;
     while (bIsRunning)
     {
-        mbMouseMoveDataValid = mbMouseInputDataValid = false;
-        
         bool bShouldRender = true;
 
         // Update window event queue.
         mEventQueue.update();
-
-        if (mEventQueue.size() > 2)
-        {
-            bool Break = true;
-        }
 
         // Iterate through that queue.
         while (!mEventQueue.empty())

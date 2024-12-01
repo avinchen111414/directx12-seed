@@ -42,71 +42,44 @@ void BoxApp::OnResize()
 
 void BoxApp::OnMouseMove(const xwin::MouseMoveData& mouseMoveData)
 {
+    D3DApp::OnMouseMove(mouseMoveData);
+
+    if (EnumHasAnyFlags(mMouseBtnState, MouseBtnState::LBUTTON))
+    {
+        // Make each pixel corresponding to a quarter of a degree. 
+        float dx = XMConvertToRadians(0.25f * static_cast<float>(mouseMoveData.deltax));
+        float dy = XMConvertToRadians(0.25f * static_cast<float>(mouseMoveData.deltay));
+
+        // Update angles based on input to orbit camera around box.
+        mTheta += dx;
+        mPhi += dy;
+
+        // Restrict the angle mPhi.
+        mPhi = MathHelper::Clamp(mPhi, 0.1f, MathHelper::Pi - 0.1f);
+    }
+
+    if (EnumHasAnyFlags(mMouseBtnState, MouseBtnState::RBUTTON))
+    {
+        // Make each pixel corresponding to 0.005 unit in the scene.
+        float dx = 0.0005f * static_cast<float>(mouseMoveData.deltax);
+        float dy = 0.0005f * static_cast<float>(mouseMoveData.deltay);
+
+        // Update the camera radius based on input.
+        mRadius += dx - dy;
+
+        // Restrict the radius.
+        mRadius = MathHelper::Clamp(mRadius, 3.0f, 15.0f);
+    }
+    
 }
 
 void BoxApp::OnMouseInput()
 {
     D3DApp::OnMouseInput();
-
-    if (EnumHasAnyFlags(mMouseBtnState, MouseBtnState::LBUTTON))
-    {
-        
-    }
-
-    if (EnumHasAnyFlags(mMouseBtnState, MouseBtnState::RBUTTON))
-    {
-        
-    }
-}
-
-void BoxApp::OnMouseRaw()
-{
-}
-
-void BoxApp::UpdateCamera()
-{
-    if (mbMouseInputDataValid && mbMouseMoveDataValid)
-    {
-        if (mMouseInputData.state == xwin::ButtonState::Pressed && mMouseInputData.button == xwin::MouseInput::Left)
-        {
-            const int mouseDeltaX = mMouseMoveData.deltax;
-            const int mouseDeltaY = mMouseMoveData.deltay;
-            
-            // Make each pixel corresponding to a quarter of a degree. 
-            float dx = XMConvertToRadians(0.25f * static_cast<float>(mouseDeltaX));
-            float dy = XMConvertToRadians(0.25f * static_cast<float>(mouseDeltaY));
-
-            // Update angles based on input to orbit camera around box.
-            mTheta += dx;
-            mPhi += dy;
-
-            // Restrict the angle mPhi.
-            mPhi = MathHelper::Clamp(mPhi, 0.1f, MathHelper::Pi - 0.1f);
-        }
-
-        if (mMouseInputData.state == xwin::ButtonState::Pressed && mMouseInputData.button == xwin::MouseInput::Right)
-        {
-            const int mouseDeltaX = mMouseMoveData.deltax;
-            const int mouseDeltaY = mMouseMoveData.deltay;
-            
-            // Make each pixel corresponding to 0.005 unit in the scene.
-            float dx = 0.0005f * static_cast<float>(mouseDeltaX);
-            float dy = 0.0005f * static_cast<float>(mouseDeltaY);
-
-            // Update the camera radius based on input.
-            mRadius += dx - dy;
-
-            // Restrict the radius.
-            mRadius = MathHelper::Clamp(mRadius, 3.0f, 15.0f);
-        }
-    }
 }
 
 void BoxApp::Update(const GameTimer& gt)
 {
-    // Firstly, update the camera orbit position based on the user inputs.  
-    UpdateCamera();
-    
     // Convert spherical to cartesian coordinates.
     float x = mRadius * sinf(mPhi) * cosf(mTheta);
     float z = mRadius * sinf(mPhi) * sinf(mTheta);

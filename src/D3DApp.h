@@ -50,7 +50,6 @@ protected:
     virtual void OnResize();
     virtual void OnMouseMove(const xwin::MouseMoveData& mouseMoveData) {}
     virtual void OnMouseInput() {}
-    virtual void OnMouseRaw() {}
 
 protected:
     bool InitWindow(const glm::ivec2& windowSize, const std::string& windowTitle);

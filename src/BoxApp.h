@@ -32,9 +32,7 @@ private:
     void OnResize() override;
     void OnMouseMove(const xwin::MouseMoveData& mouseMoveData) override;
     void OnMouseInput() override;
-    void OnMouseRaw() override;
     
-    void UpdateCamera();
     void Update(const GameTimer& gt) override;
     void Draw(const GameTimer& gt) override;
 
