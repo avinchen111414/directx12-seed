@@ -73,11 +73,6 @@ void BoxApp::OnMouseMove(const xwin::MouseMoveData& mouseMoveData)
     
 }
 
-void BoxApp::OnMouseInput()
-{
-    D3DApp::OnMouseInput();
-}
-
 void BoxApp::Update(const GameTimer& gt)
 {
     // Convert spherical to cartesian coordinates.
