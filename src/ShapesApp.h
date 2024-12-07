@@ -18,26 +18,26 @@ struct RenderItem
     // World matrix of the shape that describes the object's local space
     // relative to the world space, which defines the position, orientation,
     // and scale of the object in the world.
-    XMFLOAT4X4 World = MathHelper::Identity4x4();
+    XMFLOAT4X4 world = MathHelper::Identity4x4();
 
 	// Dirty flag indicating the object data has changed and we need to update the constant buffer.
 	// Because we have an object cbuffer for each FrameResource, we have to apply the
 	// update to each FrameResource.  Thus, when we modify obect data we should set 
 	// NumFramesDirty = gNumFrameResources so that each frame resource gets the update.
-	int NumFramesDirty = gNumFrameResources;
+	int numFramesDirty = gNumFrameResources;
 
 	// Index into GPU constant buffer corresponding to the ObjectCB for this render item.
-	UINT ObjCBIndex = -1;
+	UINT objCBIndex = -1;
 
 	MeshGeometry* Geo = nullptr;
 
     // Primitive topology.
-    D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    D3D12_PRIMITIVE_TOPOLOGY primitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
     // DrawIndexedInstanced parameters.
-    UINT IndexCount = 0;
-    UINT StartIndexLocation = 0;
-    int BaseVertexLocation = 0;
+    UINT indexCount = 0;
+    UINT startIndexLocation = 0;
+    int baseVertexLocation = 0;
     
 };
 
@@ -66,6 +66,9 @@ protected:
     void BuildRenderItems();
     void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& renderItems);
 
+    void UpdateObjectCBs(const GameTimer& gt);
+    void UpdateMainPassCB(const GameTimer& gt);
+
 private:
     std::vector<std::unique_ptr<FrameResource>> mFrameResources;
     FrameResource* mCurrentFrameResource = nullptr;
@@ -73,4 +76,8 @@ private:
 
     // List of all the render items.
     std::vector<std::unique_ptr<RenderItem>> mAllRenderItems;
+
+    XMFLOAT3 mEyePos = { 0.0f, 0.0f, 0.0f };
+    XMFLOAT4X4 mView = MathHelper::Identity4x4();
+    XMFLOAT4X4 mProj = MathHelper::Identity4x4();
 };

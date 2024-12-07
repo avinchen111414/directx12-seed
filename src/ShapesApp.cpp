@@ -26,3 +26,31 @@ void ShapesApp::BuildFrameResources()
             static_cast<uint32_t>(mAllRenderItems.size())));
     }
 }
+
+void ShapesApp::UpdateObjectCBs(const GameTimer& gt)
+{
+    UploadBuffer<ObjectConstants>* currObjectCB = mCurrentFrameResource->objectCB.get();
+    for (auto& renderItem : mAllRenderItems)
+    {
+        if (renderItem->numFramesDirty > 0)
+        {
+            const XMMATRIX world = XMLoadFloat4x4(&renderItem->world);
+
+            ObjectConstants objConstants;
+            XMStoreFloat4x4(&objConstants.world, XMMatrixTranspose(world));
+
+            currObjectCB->CopyData(renderItem->objCBIndex, objConstants);
+            renderItem->numFramesDirty--;
+        }
+    }
+}
+
+void ShapesApp::UpdateMainPassCB(const GameTimer& gt)
+{
+    const XMMATRIX view = XMLoadFloat4x4(&mView);
+    const XMMATRIX proj = XMLoadFloat4x4(&mProj);
+
+    const XMMATRIX viewProj = XMMatrixMultiply(view, proj);
+    const XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
+    const XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(proj), proj);
+}
